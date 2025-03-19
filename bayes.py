@@ -55,6 +55,9 @@ def posterior_ci_min(x, pdf, CL):
     y_cut0 = np.interp(CL, area, y_cut)
     bounds = x[pdf >= y_cut0]
     return x_map, [bounds[0], bounds[-1]]
+    
+def posterior_ci_min_pf(x, pdf, CL):
+    return posterior_ci_min(x, pdf, CL)
 
 def posterior_ci_min_pa(x, pdf, CL):
     x_map = x[np.argmax(pdf)]
@@ -69,14 +72,20 @@ def posterior_ci_min_pa(x, pdf, CL):
     pdf = ext_pdf[q]
     return posterior_ci_min(x, pdf, CL)
 
-def plot_posterior_2d(posterior, pf_lim=(0, 1), cmap='magma', savefig=None):
+def plot_posterior_2d(po, x, y, CL=[0.68, 0.90, 0.99], cmap='magma', savefig=None):
     """
-    Plot the 2D posterior distribution.
+    Plot the 2D posterior contours at CLs.
     """
+    n = 100
+    cut_value = np.linspace(po.max(), 0., n)
+    int_prob = np.zeros(n)
+    d_area = (x[1]-x[0]) * (y[1]-y[0])
+    for k in range(n):
+	    int_prob[k] = po[po >= cut_value[k]].sum()
+	    levels = np.interp(CL, int_prob * d_area, cut_value)
     plt.figure(figsize=(5, 4))
-    plt.imshow(posterior, extent=[0, 1, -90, 90], cmap=cmap, origin='lower', aspect='auto')
-    plt.colorbar(label='Posterior Probability')
-    plt.xlim(*pf_lim)
+    plt.contour(x, y, po, levels[::-1], colors='r')
+    plt.xlim(0, 0.2)
     plt.ylim(-90, 90)
     plt.xlabel('$p_0$')
     plt.ylabel('$\Psi_0$ (°)')
@@ -110,12 +119,12 @@ def plot_posterior_1d(pdf_pf, pdf_pa, pf0, pa0, savefig=None):
 def main():
     # Example parameters
     pf_measured, pa_measured = 0.05, 60.0  # Measured polarization degree and angle
-    S, B, mu = 100000, 0, 0.3  #Source, background counts, modulation factor
+    S, B, mu = 200000, 0, 0.3  #Source, background counts, modulation factor
 
     posterior_2d, pf0, pa0 = polarization_posterior_2d(mu, S, B, pf_measured, pa_measured)
     pdf_pf, pdf_pa = polarization_posterior_1d(posterior_2d, pf0, pa0)
 
-    plot_posterior_2d(posterior_2d, pf_lim=(0, 0.2))
+    plot_posterior_2d(posterior_2d, pf0, pa0)
     plot_posterior_1d(pdf_pf, pdf_pa, pf0, pa0)
     
 if __name__ == "__main__":
