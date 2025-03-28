@@ -4,6 +4,8 @@ import numpy as np
 def likelihood_i(t_i, pdf_i, param, kw):
     if kw == 'linear':
         psi_pred = param[1] + param[0] * t_i
+        while (psi_pred > 90.): psi_pred = psi_pred - 180.
+        while (psi_pred < -90): psi_pred = psi_pred + 180.
         likelihood = max(pdf_i(psi_pred), 1e-10)
     elif kw == 'const':
         psi_pred = param
