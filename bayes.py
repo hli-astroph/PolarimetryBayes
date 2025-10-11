@@ -7,9 +7,43 @@ def polarization_likelihood_2d(mu, S, B, p_0, psi_0, p_r, psi_r):
     Compute the 2D likelihood for polarization parameters.
     """
     sigma2 = 2. * (S + B) / (mu * S) ** 2
-    item = p_r ** 2 + p_0 ** 2 - 2. * p_r * p_0 * np.cos(2. * np.deg2rad(psi_r - psi_0))
+    item = p_r ** 2 + p_0 ** 2 - 2. * p_r * p_0 * np.cos(2. * np.deg2rad(psi_r - psi_0)) 
     f = p_r / np.pi / sigma2 * np.exp(-item / 2. / sigma2)
     return f
+    
+def polarization_likelihood_2d_correlated(mu, S, B, p_0, psi_0, p_r, psi_r):
+    # number of source and background photons
+    N = S + B
+    psi_0 = np.deg2rad(psi_0)
+    psi_r = np.deg2rad(psi_r)
+    
+    mp0 = mu * p_0
+    # stokes Q & U
+    Q0 = mp0 / 2.0 * np.cos(2. * psi_0)
+    U0 = mp0 / 2.0 * np.sin(2. * psi_0)
+    # sigma of Q & U
+    sigma_Q = np.sqrt(1. / S * (N / 2. / S - Q0 ** 2))
+    sigma_U = np.sqrt(1. / S * (N / 2. / S - U0 ** 2))
+
+    mp02 = mp0 ** 2
+    mp04 = mp0 ** 4
+    s4p = np.sin(4. * psi_0)
+    rho = -S * mp02 * s4p / np.sqrt(16. * N * N - 8. * N * S * mp02 + S * S * mp04 * s4p ** 2)
+
+    Q_r = mu * p_r / 2.0 * np.cos(2. * psi_r)
+    U_r = mu * p_r / 2.0 * np.sin(2. * psi_r)
+
+    # likelihood of measured Q & U given true Q & U
+    item1 = 2. * np.pi * sigma_Q * sigma_U * np.sqrt(1. - rho ** 2)
+    item2 = (Q_r - Q0) ** 2 / sigma_Q ** 2
+    item3 = (U_r - U0) ** 2 / sigma_U ** 2
+    item4 = 2. * rho * (Q_r - Q0) * (U_r - U0) / sigma_Q / sigma_U
+    BQU = 1. / item1 * np.exp(-1. / 2. / (1. - rho ** 2) * (item2 + item3 - item4))
+
+    detJ = p_r * mu ** 2 / 2.0
+
+    # likelihood in polar coordinates L(p_r, psi_r | p0, psi0)
+    return BQU * detJ
 
 def polarization_prior_2d(p0, psi0):
     """
@@ -20,7 +54,7 @@ def polarization_prior_2d(p0, psi0):
     prob[q] = 1.0
     return prob
 
-def polarization_posterior_2d(mu, S, B, pf, pa, d_pf0=0.001, d_pa0=0.01):
+def polarization_posterior_2d(mu, S, B, pf, pa, d_pf0=0.001, d_pa0=0.01, kw=''):
     """
     Compute the posterior distribution for p0 and psi0.
     """
@@ -28,7 +62,10 @@ def polarization_posterior_2d(mu, S, B, pf, pa, d_pf0=0.001, d_pa0=0.01):
     pa_grid = np.arange(-90.0, 90.0, d_pa0) + d_pa0 / 2.0
     pf0, pa0 = np.meshgrid(pf_grid, pa_grid)
     
-    likelihood = polarization_likelihood_2d(mu, S, B, pf0, pa0, pf, pa)
+    if kw[:3] == 'cor':
+        likelihood = polarization_likelihood_2d_correlated(mu, S, B, pf0, pa0, pf, pa)
+    else:
+        likelihood = polarization_likelihood_2d(mu, S, B, pf0, pa0, pf, pa)
     prior = polarization_prior_2d(pf0, pa0)
     posterior = prior * likelihood
     norm = np.sum(posterior) * d_pf0 * d_pa0
