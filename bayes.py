@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import scienceplots
+plt.style.use(['science', 'notebook','no-latex'])
     
 def polarization_likelihood_2d(mu, S, B, p_0, psi_0, p_r, psi_r):
     """
@@ -126,16 +128,18 @@ def plot_posterior_1d(pdf_pf, pdf_pa, pf0, pa0, savefig=None):
     """
     Plot the marginal posterior distributions for p0 and psi0.
     """
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
     
     axs[0].plot(pf0, pdf_pf, color='purple')
     axs[0].set_xlim(0, 1)
+    axs[0].set_ylim(0, )
     axs[0].set_xlabel('$p_0$')
     axs[0].set_ylabel('PDF')
 
     axs[1].plot(pa0, pdf_pa, color='purple')
     axs[1].set_xlim(-90, 90)
-    axs[1].set_xlabel('$\Psi_0$ (°)')
+    axs[1].set_ylim(0, )
+    axs[1].set_xlabel('$\Psi_0$ (deg)')
     axs[1].set_ylabel('PDF')
 
     plt.tight_layout()
